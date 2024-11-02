@@ -53,6 +53,10 @@ function getQuizTitle(quizFile) {
   // Optionally, fetch quiz title for display. For simplicity, return a default title
   if (quizFile === 'text1worksheet.json') return 'Human Body Systems';
   if (quizFile === 'text2worksheet.json') return 'Biodiversity and Classification';
+  if (quizFile === 'text3worksheet.json') return 'Grade 7 geography example';
+  if (quizFile === 'text4worksheet.json') return 'grade 7 history example';
+
+
   return 'Unknown Quiz';
 }
 
