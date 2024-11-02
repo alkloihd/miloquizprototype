@@ -8,6 +8,9 @@ let quizzes = [];
 let currentQuizData = null;
 let studentResponses = [];
 
+// Object to track score breakdown per category
+let scoreBreakdown = {};
+
 document.addEventListener('DOMContentLoaded', () => {
   loadQuizzes();
 });
@@ -50,8 +53,10 @@ function displayQuizList() {
 
   quizzes.forEach((quiz, index) => {
     const listItem = document.createElement('li');
-    const quizName = `Quiz ${index + 1}: ${quiz.title}`;
-    listItem.textContent = quizName;
+
+    const quizName = document.createElement('span');
+    quizName.textContent = `Quiz ${index + 1}: ${quiz.title}`;
+    listItem.appendChild(quizName);
 
     const startButton = document.createElement('button');
     startButton.textContent = 'Start Quiz';
@@ -244,57 +249,95 @@ function processQuizResults() {
   let totalScore = 0;
   let possibleScore = 0;
 
-  currentQuizData.questions.forEach(question => {
-    if (['multipleChoice', 'trueFalse', 'fillInTheBlank'].includes(question.type)) {
-      if (question.type === 'fillInTheBlank') {
-        possibleScore += question.answers.length;
-        for (let i = 0; i < question.answers.length; i++) {
-          const response = formData.get(`question-${question.id}-blank-${i + 1}`) || '';
-          const correctAnswer = question.answers[i];
-          const isCorrect = response.trim().toLowerCase() === correctAnswer.toLowerCase();
-          if (isCorrect) totalScore += 1;
+  // Initialize scoreBreakdown
+  scoreBreakdown = {};
 
-          studentResponses.push({
-            id: `${question.id}-blank-${i + 1}`,
-            question: question.question,
-            response: response,
-            correctAnswer: correctAnswer,
-            isCorrect: isCorrect
-          });
-        }
+  currentQuizData.questions.forEach(question => {
+    const qType = question.type;
+
+    // Initialize scoreBreakdown for the category if not already
+    if (!scoreBreakdown[qType]) {
+      scoreBreakdown[qType] = { correct: 0, total: 0 };
+    }
+
+    if (['multipleChoice', 'trueFalse'].includes(qType)) {
+      scoreBreakdown[qType].total += 1;
+      const response = formData.get(`question-${question.id}`) || '';
+      let correctAnswer = '';
+
+      if (qType === 'trueFalse') {
+        correctAnswer = question.answer ? 'True' : 'False';
       } else {
-        possibleScore += 1;
-        const response = formData.get(`question-${question.id}`) || '';
-        let correctAnswer = '';
-        if (question.type === 'trueFalse') {
-          correctAnswer = question.answer ? 'True' : 'False';
-        } else {
-          correctAnswer = question.answer;
+        correctAnswer = question.answer;
+      }
+
+      const isCorrect = response.trim().toLowerCase() === correctAnswer.toLowerCase();
+
+      if (isCorrect) {
+        totalScore += 1;
+        scoreBreakdown[qType].correct += 1;
+      }
+
+      studentResponses.push({
+        id: question.id,
+        question: question.question,
+        response: response,
+        correctAnswer: correctAnswer,
+        isCorrect: isCorrect,
+        type: qType
+      });
+
+    } else if (qType === 'fillInTheBlank') {
+      const blankCount = question.answers.length;
+      scoreBreakdown[qType].total += blankCount;
+
+      for (let i = 0; i < blankCount; i++) {
+        const response = formData.get(`question-${question.id}-blank-${i + 1}`) || '';
+        const correctAnswers = question.answers[i]; // Array of possible correct answers
+        // If question.answers[i] is not an array, convert it to an array
+        const correctAnsArray = Array.isArray(correctAnswers) ? correctAnswers : [correctAnswers];
+
+        const isCorrect = correctAnsArray.some(ans => response.trim().toLowerCase() === ans.toLowerCase());
+
+        if (isCorrect) {
+          totalScore += 1;
+          scoreBreakdown[qType].correct += 1;
         }
-        const isCorrect = response.trim().toLowerCase() === correctAnswer.toLowerCase();
-        if (isCorrect) totalScore += 1;
 
         studentResponses.push({
-          id: question.id,
+          id: `${question.id}-blank-${i + 1}`,
           question: question.question,
           response: response,
-          correctAnswer: correctAnswer,
-          isCorrect: isCorrect
+          correctAnswer: correctAnsArray.join(', '),
+          isCorrect: isCorrect,
+          type: qType
         });
       }
-    } else if (question.type === 'shortAnswer') {
+
+    } else if (qType === 'shortAnswer') {
+      scoreBreakdown[qType].total += 1;
       const response = formData.get(`question-${question.id}`) || '';
+      // For shortAnswer, automatic grading is not implemented. Mark as N/A
       studentResponses.push({
         id: question.id,
         question: question.question,
         response: response,
         correctAnswer: 'N/A',
-        isCorrect: null
+        isCorrect: null,
+        type: qType
       });
     }
   });
 
-  displayResults(totalScore, possibleScore);
+  displayResults(totalScore, getTotalPossible());
+}
+
+function getTotalPossible() {
+  let total = 0;
+  for (let category in scoreBreakdown) {
+    total += scoreBreakdown[category].total;
+  }
+  return total;
 }
 
 function displayResults(totalScore, possibleScore) {
@@ -303,6 +346,22 @@ function displayResults(totalScore, possibleScore) {
 
   const scorePara = document.createElement('p');
   scorePara.textContent = `${studentName}, you scored ${totalScore} out of ${possibleScore}.`;
+
+  // Create score breakdown by category
+  const breakdownDiv = document.createElement('div');
+  breakdownDiv.className = 'score-breakdown';
+
+  const breakdownTitle = document.createElement('h2');
+  breakdownTitle.textContent = 'Score Breakdown by Section';
+  breakdownDiv.appendChild(breakdownTitle);
+
+  const breakdownList = document.createElement('ul');
+  for (let category in scoreBreakdown) {
+    const listItem = document.createElement('li');
+    listItem.textContent = `${capitalizeFirstLetter(category)}: ${scoreBreakdown[category].correct} / ${scoreBreakdown[category].total}`;
+    breakdownList.appendChild(listItem);
+  }
+  breakdownDiv.appendChild(breakdownList);
 
   const resultsDiv = document.createElement('div');
 
@@ -344,25 +403,41 @@ function displayResults(totalScore, possibleScore) {
   app.innerHTML = '';
   app.appendChild(title);
   app.appendChild(scorePara);
+  app.appendChild(breakdownDiv);
   app.appendChild(resultsDiv);
   app.appendChild(downloadButtonDiv);
+}
+
+function capitalizeFirstLetter(string) {
+  return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
 function downloadCSV() {
   let csvContent = 'data:text/csv;charset=utf-8,';
   csvContent += `Student Name,${studentName}\n`;
-  csvContent += `Question ID,Question,Your Answer,Correct Answer,Result\n`;
+  
+  // Add score breakdown at the top
+  csvContent += `\nScore Breakdown by Section\n`;
+  csvContent += `Section,Correct,Total\n`;
+  for (let category in scoreBreakdown) {
+    csvContent += `${capitalizeFirstLetter(category)},${scoreBreakdown[category].correct},${scoreBreakdown[category].total}\n`;
+  }
+
+  // Add an empty line before question details
+  csvContent += `\nQuestion Details\n`;
+  csvContent += `Question ID,Question,Your Answer,Correct Answer,Result,Section\n`;
 
   studentResponses.forEach(response => {
     let answerField = response.response;
     let correctAnswerField = response.correctAnswer;
     let resultField = response.isCorrect === null ? 'N/A' : (response.isCorrect ? 'Correct' : 'Incorrect');
+    let sectionField = capitalizeFirstLetter(response.type);
 
     // Escape double quotes by replacing " with ""
     answerField = `"${answerField.replace(/"/g, '""')}"`;
     correctAnswerField = `"${correctAnswerField.replace(/"/g, '""')}"`;
 
-    csvContent += `${response.id},"${response.question}",${answerField},${correctAnswerField},${resultField}\n`;
+    csvContent += `${response.id},"${response.question}",${answerField},${correctAnswerField},${resultField},${sectionField}\n`;
   });
 
   const encodedUri = encodeURI(csvContent);
