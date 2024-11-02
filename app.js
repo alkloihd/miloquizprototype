@@ -3,7 +3,7 @@
 const app = document.getElementById('app');
 
 let studentName = '';
-let selectedQuiz = '';
+let selectedQuiz = null;
 let quizzes = [];
 let currentQuizData = null;
 let studentResponses = [];
@@ -12,36 +12,121 @@ let studentResponses = [];
 let scoreBreakdown = {};
 
 document.addEventListener('DOMContentLoaded', () => {
-  loadQuizzes();
+  displayClassSelection();
 });
 
-function loadQuizzes() {
-  // Define all available quizzes with their corresponding text files and titles
-  quizzes = [
-    {
-      quizFile: 'text1worksheet.json',
-      textFile: 'text1.txt',
-      title: 'Human Body Systems'
-    },
-    {
-      quizFile: 'text2worksheet.json',
-      textFile: 'text2.txt',
-      title: 'Biodiversity and Classification'
-    },
-    {
-      quizFile: 'text3worksheet.json',
-      textFile: 'text3.txt',
-      title: 'Grade 7 Geography Example'
-    },
-    {
-      quizFile: 'text4worksheet.json',
-      textFile: 'text4.txt',
-      title: 'Grade 7 History Example'
-    }
-    // Add more quiz objects here as needed
-  ];
+function displayClassSelection() {
+  fetch('./students/teacher1classes.json')
+    .then(response => response.json())
+    .then(data => {
+      const classes = data.classes;
 
-  displayQuizList();
+      const title = document.createElement('h1');
+      title.textContent = 'Select Your Class';
+
+      const classList = document.createElement('ul');
+      classList.className = 'class-list';
+
+      classes.forEach((classItem) => {
+        const listItem = document.createElement('li');
+
+        const classButton = document.createElement('button');
+        classButton.textContent = classItem.className;
+        classButton.addEventListener('click', () => {
+          displayStudentLogin(classItem);
+        });
+
+        listItem.appendChild(classButton);
+        classList.appendChild(listItem);
+      });
+
+      app.innerHTML = '';
+      app.appendChild(title);
+      app.appendChild(classList);
+    })
+    .catch(error => {
+      console.error('Error loading classes:', error);
+      alert('Failed to load class data.');
+    });
+}
+
+function displayStudentLogin(classData) {
+  const title = document.createElement('h1');
+  title.textContent = `Class: ${classData.className}`;
+
+  const nameLabel = document.createElement('label');
+  nameLabel.textContent = 'Select your name:';
+
+  const nameSelect = document.createElement('select');
+  nameSelect.id = 'student-name-select';
+
+  const defaultOption = document.createElement('option');
+  defaultOption.value = '';
+  defaultOption.textContent = 'Select your name';
+  nameSelect.appendChild(defaultOption);
+
+  classData.students.forEach(student => {
+    const option = document.createElement('option');
+    option.value = `${student.firstName} ${student.lastName}`;
+    option.textContent = `${student.firstName} ${student.lastName}`;
+    nameSelect.appendChild(option);
+  });
+
+  const passwordLabel = document.createElement('label');
+  passwordLabel.textContent = 'Enter your password:';
+
+  const passwordInput = document.createElement('input');
+  passwordInput.type = 'password';
+  passwordInput.id = 'student-password';
+  passwordInput.placeholder = 'Password';
+
+  const loginButton = document.createElement('button');
+  loginButton.textContent = 'Login';
+  loginButton.addEventListener('click', () => {
+    const selectedName = nameSelect.value;
+    const enteredPassword = passwordInput.value.trim();
+
+    if (selectedName && enteredPassword) {
+      const selectedStudent = classData.students.find(student => `${student.firstName} ${student.lastName}` === selectedName);
+      if (selectedStudent) {
+        if (enteredPassword === selectedStudent.password) {
+          studentName = selectedName;
+          // Proceed to quiz selection
+          loadQuizzes();
+        } else {
+          alert('Incorrect password. Please try again.');
+        }
+      } else {
+        alert('Student not found.');
+      }
+    } else {
+      alert('Please select your name and enter your password.');
+    }
+  });
+
+  app.innerHTML = '';
+  app.appendChild(title);
+  app.appendChild(nameLabel);
+  app.appendChild(nameSelect);
+  app.appendChild(document.createElement('br'));
+  app.appendChild(passwordLabel);
+  app.appendChild(passwordInput);
+  app.appendChild(document.createElement('br'));
+  app.appendChild(document.createElement('br'));
+  app.appendChild(loginButton);
+}
+
+function loadQuizzes() {
+  fetch('./quizzes.json')
+    .then(response => response.json())
+    .then(data => {
+      quizzes = data;
+      displayQuizList();
+    })
+    .catch(error => {
+      console.error('Error loading quizzes:', error);
+      alert('Failed to load quiz list.');
+    });
 }
 
 function displayQuizList() {
@@ -55,13 +140,14 @@ function displayQuizList() {
     const listItem = document.createElement('li');
 
     const quizName = document.createElement('span');
-    quizName.textContent = `Quiz ${index + 1}: ${quiz.title}`;
+    const quizTitle = quiz.textFile;
+    quizName.textContent = `Quiz ${index + 1}: ${quizTitle}`;
     listItem.appendChild(quizName);
 
     const startButton = document.createElement('button');
     startButton.textContent = 'Start Quiz';
     startButton.addEventListener('click', () => {
-      selectedQuiz = quiz.quizFile;
+      selectedQuiz = quiz;
       loadQuizData(quiz);
     });
 
@@ -75,10 +161,13 @@ function displayQuizList() {
 }
 
 function loadQuizData(quiz) {
-  fetchQuizData(quiz.quizFile).then(quizData => {
+  const quizFile = `./worksheets/${quiz.worksheetFile}`;
+  const textFile = `./texts/${quiz.textFile}`;
+
+  fetchQuizData(quizFile).then(quizData => {
     currentQuizData = quizData;
-    fetchTextData(quiz.textFile).then(textData => {
-      displayStudentNameEntry(textData);
+    fetchTextData(textFile).then(textData => {
+      displayQuizPage(textData);
     });
   }).catch(error => {
     console.error('Error loading quiz data:', error);
@@ -87,7 +176,7 @@ function loadQuizData(quiz) {
 }
 
 function fetchQuizData(quizFile) {
-  return fetch(`./${quizFile}`)
+  return fetch(quizFile)
     .then(response => {
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
@@ -97,47 +186,13 @@ function fetchQuizData(quizFile) {
 }
 
 function fetchTextData(textFile) {
-  return fetch(`./${textFile}`)
+  return fetch(textFile)
     .then(response => {
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
       return response.text();
     });
-}
-
-function displayStudentNameEntry(textData) {
-  const title = document.createElement('h1');
-  title.textContent = currentQuizData.quizTitle;
-
-  const nameLabel = document.createElement('label');
-  nameLabel.textContent = 'Enter your name:';
-  nameLabel.setAttribute('for', 'student-name');
-
-  const nameInput = document.createElement('input');
-  nameInput.type = 'text';
-  nameInput.id = 'student-name';
-  nameInput.placeholder = 'Your Name';
-
-  const continueButton = document.createElement('button');
-  continueButton.textContent = 'Continue';
-  continueButton.addEventListener('click', () => {
-    studentName = nameInput.value.trim();
-    if (studentName) {
-      displayQuizPage(textData);
-    } else {
-      alert('Please enter your name.');
-    }
-  });
-
-  app.innerHTML = '';
-  app.appendChild(title);
-  app.appendChild(nameLabel);
-  app.appendChild(document.createElement('br'));
-  app.appendChild(nameInput);
-  app.appendChild(document.createElement('br'));
-  app.appendChild(document.createElement('br'));
-  app.appendChild(continueButton);
 }
 
 function displayQuizPage(textData) {
@@ -195,8 +250,8 @@ function displayQuizPage(textData) {
 
       questionDiv.appendChild(optionsList);
     } else if (question.type === 'fillInTheBlank') {
-      const blankCount = question.answers.length;
       const questionParts = question.question.split('_____');
+      const blankCount = questionParts.length - 1;
 
       // Clear the question div and rebuild with inputs
       questionDiv.innerHTML = '';
@@ -247,7 +302,6 @@ function processQuizResults() {
   const formData = new FormData(form);
   studentResponses = [];
   let totalScore = 0;
-  let possibleScore = 0;
 
   // Initialize scoreBreakdown
   scoreBreakdown = {};
@@ -288,13 +342,14 @@ function processQuizResults() {
       });
 
     } else if (qType === 'fillInTheBlank') {
-      const blankCount = question.answers.length;
+      const questionParts = question.question.split('_____');
+      const blankCount = questionParts.length - 1;
+
       scoreBreakdown[qType].total += blankCount;
 
       for (let i = 0; i < blankCount; i++) {
         const response = formData.get(`question-${question.id}-blank-${i + 1}`) || '';
-        const correctAnswers = question.answers[i]; // Array of possible correct answers
-        // If question.answers[i] is not an array, convert it to an array
+        const correctAnswers = question.answers[i];
         const correctAnsArray = Array.isArray(correctAnswers) ? correctAnswers : [correctAnswers];
 
         const isCorrect = correctAnsArray.some(ans => response.trim().toLowerCase() === ans.toLowerCase());
@@ -313,7 +368,6 @@ function processQuizResults() {
           type: qType
         });
       }
-
     } else if (qType === 'shortAnswer') {
       scoreBreakdown[qType].total += 1;
       const response = formData.get(`question-${question.id}`) || '';
@@ -448,4 +502,3 @@ function downloadCSV() {
   link.click();
   document.body.removeChild(link);
 }
-
