@@ -31,30 +31,6 @@
         "question": "5. The _____ system helps to fight infections and maintain immunity, while the _____ system is involved in movement and support.",
         "answers": ["immune", "musculoskeletal"]
       },
-      {
-        "id": 6,
-        "type": "fillInTheBlank",
-        "question": "6. The _____ system is responsible for processing sensory information, while the _____ system controls the body's responses to external stimuli.",
-        "answers": ["nervous", "endocrine"]
-      },
-      {
-        "id": 7,
-        "type": "fillInTheBlank",
-        "question": "7. The _____ system is crucial for nutrient absorption, whereas the _____ system eliminates waste from the body.",
-        "answers": ["digestive", "excretory"]
-      },
-      {
-        "id": 8,
-        "type": "fillInTheBlank",
-        "question": "8. The _____ system regulates body temperature, while the _____ system plays a role in reproduction.",
-        "answers": ["integumentary", "reproductive"]
-      },
-      {
-        "id": 9,
-        "type": "fillInTheBlank",
-        "question": "9. The _____ system transports nutrients and oxygen, while the _____ system ensures proper hormone regulation.",
-        "answers": ["circulatory", "endocrine"]
-      },
   
       {
         "id": 10,
@@ -97,24 +73,6 @@
         "type": "trueFalse",
         "question": "7. The nervous system controls the body's responses to external stimuli.",
         "answer": true
-      },
-      {
-        "id": 17,
-        "type": "trueFalse",
-        "question": "8. The respiratory system and circulatory system do not interact.",
-        "answer": false
-      },
-      {
-        "id": 18,
-        "type": "trueFalse",
-        "question": "9. The integumentary system helps regulate body temperature.",
-        "answer": true
-      },
-      {
-        "id": 19,
-        "type": "trueFalse",
-        "question": "10. The reproductive system is responsible for nutrient absorption.",
-        "answer": false
       },
   
       {
