@@ -69,7 +69,7 @@ function loadQuizData(quizFile, textFile) {
 }
 
 function fetchQuizData(quizFile) {
-  return fetch(`quizzes/${quizFile}`)
+  return fetch(`./${quizFile}`) // Fetching from root directory
     .then(response => {
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
@@ -79,7 +79,7 @@ function fetchQuizData(quizFile) {
 }
 
 function fetchTextData(textFile) {
-  return fetch(`texts/${textFile}`)
+  return fetch(`./${textFile}`) // Fetching from root directory
     .then(response => {
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
@@ -136,6 +136,7 @@ function displayQuizPage(textData) {
   currentQuizData.questions.forEach(question => {
     const questionDiv = document.createElement('div');
     questionDiv.className = 'question';
+    questionDiv.id = `question-${question.id}`; // Assign unique ID for styling
 
     const questionTitle = document.createElement('h3');
     questionTitle.innerHTML = question.question;
@@ -295,6 +296,13 @@ function displayResults(totalScore, possibleScore) {
   studentResponses.forEach(response => {
     const resultItem = document.createElement('div');
     resultItem.className = 'result';
+
+    // Add 'correct' or 'incorrect' class based on the response
+    if (response.isCorrect === true) {
+      resultItem.classList.add('correct');
+    } else if (response.isCorrect === false) {
+      resultItem.classList.add('incorrect');
+    }
 
     const questionText = document.createElement('p');
     questionText.innerHTML = `<strong>Question ${response.id}:</strong> ${response.question}`;
