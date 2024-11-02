@@ -5,7 +5,6 @@ const app = document.getElementById('app');
 let studentName = '';
 let selectedQuiz = '';
 let quizzes = [];
-let texts = [];
 let currentQuizData = null;
 let studentResponses = [];
 
@@ -14,9 +13,30 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function loadQuizzes() {
-  // List all available quizzes and corresponding texts
-  quizzes = ['text1worksheet.json', 'text2worksheet.json']; // Add more quiz JSON filenames as needed
-  texts = ['text1.txt', 'text2.txt']; // Add more text filenames as needed
+  // Define all available quizzes with their corresponding text files and titles
+  quizzes = [
+    {
+      quizFile: 'text1worksheet.json',
+      textFile: 'text1.txt',
+      title: 'Human Body Systems'
+    },
+    {
+      quizFile: 'text2worksheet.json',
+      textFile: 'text2.txt',
+      title: 'Biodiversity and Classification'
+    },
+    {
+      quizFile: 'text3worksheet.json',
+      textFile: 'text3.txt',
+      title: 'Grade 7 Geography Example'
+    },
+    {
+      quizFile: 'text4worksheet.json',
+      textFile: 'text4.txt',
+      title: 'Grade 7 History Example'
+    }
+    // Add more quiz objects here as needed
+  ];
 
   displayQuizList();
 }
@@ -28,16 +48,16 @@ function displayQuizList() {
   const list = document.createElement('ul');
   list.className = 'quiz-list';
 
-  quizzes.forEach((quizFile, index) => {
+  quizzes.forEach((quiz, index) => {
     const listItem = document.createElement('li');
-    const quizName = `Quiz ${index + 1}: ${getQuizTitle(quizFile)}`;
+    const quizName = `Quiz ${index + 1}: ${quiz.title}`;
     listItem.textContent = quizName;
 
     const startButton = document.createElement('button');
     startButton.textContent = 'Start Quiz';
     startButton.addEventListener('click', () => {
-      selectedQuiz = quizFile;
-      loadQuizData(quizFile, texts[index]);
+      selectedQuiz = quiz.quizFile;
+      loadQuizData(quiz);
     });
 
     listItem.appendChild(startButton);
@@ -49,21 +69,10 @@ function displayQuizList() {
   app.appendChild(list);
 }
 
-function getQuizTitle(quizFile) {
-  // Optionally, fetch quiz title for display. For simplicity, return a default title
-  if (quizFile === 'text1worksheet.json') return 'Human Body Systems';
-  if (quizFile === 'text2worksheet.json') return 'Biodiversity and Classification';
-  if (quizFile === 'text3worksheet.json') return 'Grade 7 geography example';
-  if (quizFile === 'text4worksheet.json') return 'grade 7 history example';
-
-
-  return 'Unknown Quiz';
-}
-
-function loadQuizData(quizFile, textFile) {
-  fetchQuizData(quizFile).then(quizData => {
+function loadQuizData(quiz) {
+  fetchQuizData(quiz.quizFile).then(quizData => {
     currentQuizData = quizData;
-    fetchTextData(textFile).then(textData => {
+    fetchTextData(quiz.textFile).then(textData => {
       displayStudentNameEntry(textData);
     });
   }).catch(error => {
@@ -73,7 +82,7 @@ function loadQuizData(quizFile, textFile) {
 }
 
 function fetchQuizData(quizFile) {
-  return fetch(`./${quizFile}`) // Fetching from root directory
+  return fetch(`./${quizFile}`)
     .then(response => {
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
@@ -83,7 +92,7 @@ function fetchQuizData(quizFile) {
 }
 
 function fetchTextData(textFile) {
-  return fetch(`./${textFile}`) // Fetching from root directory
+  return fetch(`./${textFile}`)
     .then(response => {
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
